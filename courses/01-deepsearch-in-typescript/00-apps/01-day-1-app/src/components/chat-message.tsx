@@ -1,13 +1,16 @@
 import ReactMarkdown, { type Components } from "react-markdown";
+import type { UIMessage } from "ai";
+import { ToolInvocation } from "./tool-invocation";
+
+export type MessagePart = NonNullable<UIMessage["parts"]>[number];
 
 interface ChatMessageProps {
-  text: string;
+  parts: MessagePart[];
   role: string;
   userName: string;
 }
 
-const components: Components = {
-  // Override default elements with custom styling
+export const components: Components = {
   p: ({ children }) => <p className="mb-4 first:mt-0 last:mb-0">{children}</p>,
   ul: ({ children }) => <ul className="mb-4 list-disc pl-4">{children}</ul>,
   ol: ({ children }) => <ol className="mb-4 list-decimal pl-4">{children}</ol>,
@@ -34,11 +37,12 @@ const components: Components = {
   ),
 };
 
+
 const Markdown = ({ children }: { children: string }) => {
   return <ReactMarkdown components={components}>{children}</ReactMarkdown>;
 };
 
-export const ChatMessage = ({ text, role, userName }: ChatMessageProps) => {
+export const ChatMessage = ({ parts, role, userName }: ChatMessageProps) => {
   const isAI = role === "assistant";
 
   return (
@@ -53,7 +57,16 @@ export const ChatMessage = ({ text, role, userName }: ChatMessageProps) => {
         </p>
 
         <div className="prose prose-invert max-w-none">
-          <Markdown>{text}</Markdown>
+          {parts?.filter(part => part.type.startsWith("tool-")).map((part, index) => (
+            <div key={`tool-${index}`}>
+              <ToolInvocation part={part} />
+            </div>
+          ))}
+          {parts?.filter(part => part.type === "text").map((part, index) => (
+            <div key={`text-${index}`}>
+              <Markdown>{part.text}</Markdown>
+            </div>
+          ))}
         </div>
       </div>
     </div>
